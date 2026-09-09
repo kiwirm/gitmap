@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.color.schema.json",
+  "title": "Gitmap color record (one line of colors.ndjson)",
+  "type": "object",
+  "required": ["id", "name", "renderOrder"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^color_",
+      "description": "Stable id: color_<slug(name)>_<order>. Symbols reference this, not a palette index."
+    },
+    "order": { "type": "integer", "description": "Source palette index; disambiguator in the id." },
+    "name": { "type": "string" },
+    "rgb": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0, "maximum": 255 },
+      "minItems": 3,
+      "maxItems": 3,
+      "description": "Screen colour as an [r, g, b] integer triple (0..255), matching cmyk's array shape."
+    },
+    "cmyk": {
+      "type": "array",
+      "items": { "type": "number", "minimum": 0, "maximum": 1 },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "Print/OCAD ink [c,m,y,k], each 0..1, snapped to OCAD's whole-percent (2 dp) grid."
+    },
+    "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+    "renderOrder": {
+      "type": "integer",
+      "description": "Paint priority (higher = drawn on top). Distinct from `order` (palette index): the two diverge where a source's colour-list order differs from its draw order. Colours sort by this then id."
+    }
+  }
+}

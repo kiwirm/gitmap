@@ -1,0 +1,4 @@
+# Generated / private package files — never tracked (see README.md)
+**/private/
+**/exports/
+node_modules/

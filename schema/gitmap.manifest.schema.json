@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.manifest.schema.json",
+  "title": "Gitmap manifest (manifest.json)",
+  "description": "Top-level manifest of a .gitmap package. One per package.",
+  "type": "object",
+  "required": ["format", "version", "parts"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "gitmap" },
+    "version": { "type": "integer", "minimum": 1, "description": "Spec version. Bump on any canonical-rule change." },
+    "units": { "type": "string", "const": "map-units", "description": "Coordinate unit: 1 unit = 0.01 mm on the paper plane." },
+    "precision": { "type": "integer", "description": "Decimal places coordinates/scalars are rounded to (3)." },
+    "parts": {
+      "type": "array",
+      "description": "Map parts (layers), inline. Objects reference a part by object.partId; the default single part is { id: 'part_main', name: 'Main' }.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Part id referenced by object.partId." },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "string", "description": "Free-text map notes carried from source." },
+    "extensions": { "type": "object", "description": "Namespaced extension data (opaque)." },
+    "georeferencing": {
+      "$ref": "#/$defs/crs",
+      "description": "Coordinate reference system. Inline (there is no separate crs.json)."
+    }
+  },
+  "$defs": {
+    "crs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "MapCrs. Values are at OOMapper's serialisation precision so OCD- and OMap-sourced maps agree.",
+      "properties": {
+        "scale": { "type": "number", "description": "Map scale denominator (1:scale)." },
+        "grivation": { "type": "number", "description": "Grid→magnetic rotation, degrees." },
+        "declination": { "type": "number", "description": "Magnetic declination, degrees = grivation + meridian convergence. Derived for OCAD sources." },
+        "auxiliaryScaleFactor": { "type": "number", "description": "Ground-true scaling multiplier. NOT recoverable from OCAD; may be absent." },
+        "gridScaleFactor": { "type": "number" },
+        "refPoint": { "$ref": "#/$defs/point" },
+        "projected": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "id": { "type": "string" },
+            "parameter": { "type": "string", "description": "EPSG code." },
+            "refPoint": { "$ref": "#/$defs/point" },
+            "spec": { "$ref": "#/$defs/crsSpec" }
+          }
+        },
+        "geographic": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "id": { "type": "string" },
+            "spec": { "$ref": "#/$defs/crsSpec" },
+            "refPointDeg": {
+              "type": "object",
+              "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } }
+            }
+          }
+        }
+      }
+    },
+    "crsSpec": {
+      "type": "object",
+      "properties": {
+        "language": { "type": "string", "examples": ["PROJ.4"] },
+        "value": { "type": "string" }
+      }
+    },
+    "point": {
+      "type": "object",
+      "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+    }
+  }
+}
