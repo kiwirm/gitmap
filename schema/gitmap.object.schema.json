@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.object.schema.json",
+  "title": "Gitmap object record (one line of objects.ndjson)",
+  "type": "object",
+  "required": ["order", "type", "partId", "symbolId", "coordinates"],
+  "additionalProperties": false,
+  "properties": {
+    "order": {
+      "type": "integer",
+      "description": "Canonical dense z-rank (index in render order), NOT the raw source object id. Objects carry no stored id; objects.ndjson sorts by (partId, symbolId, geometry) and readers restore render order from `order`."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["point", "line", "area", "text", "line-text", "unknown"],
+      "description": "Canonical object kind."
+    },
+    "partId": { "type": "string", "description": "References an inline manifest part id (default 'part_main')." },
+    "symbolId": { "type": "string", "pattern": "^sym_", "description": "References a symbols.ndjson id." },
+    "coordinates": {
+      "type": "array",
+      "description": "The object's coordinate list. For an area with holes this is the OUTER ring; interior rings go in `holes`.",
+      "items": { "$ref": "#/$defs/coord" }
+    },
+    "holes": {
+      "type": "array",
+      "description": "Interior rings (holes) of an area object, each a coordinate ring. Absent when the object has none. Ring boundaries are structural — no positional `hole` coord flag is stored.",
+      "items": { "type": "array", "items": { "$ref": "#/$defs/coord" } }
+    },
+    "text": { "type": "string", "description": "Text content (text objects). Omitted when empty." },
+    "rotation": { "type": "number", "description": "Object rotation in DEGREES, counter-clockwise, snapped to OCAD's 0.1° grid. Omitted when 0. (Area fill-pattern rotation lives in `pattern`, not here.)" },
+    "hidden": { "const": true, "description": "Present only when hidden." },
+    "hAlign": { "enum": ["left", "center", "right"], "description": "Text horizontal alignment. Omitted when default (left)." },
+    "vAlign": { "enum": ["baseline", "top", "middle", "bottom"], "description": "Text vertical alignment. Omitted when default (baseline)." },
+    "textBox": {
+      "type": "object",
+      "properties": { "width": { "type": "number" }, "height": { "type": "number" } }
+    },
+    "pattern": {
+      "type": "object",
+      "description": "Per-object area-pattern override. rotation in degrees, snapped to 0.1°; dropped when all-default.",
+      "properties": {
+        "rotation": { "type": "number" },
+        "origin": { "type": "object", "properties": { "x": { "type": "number" }, "y": { "type": "number" } } }
+      }
+    },
+    "tag": { "type": "string", "description": "Free-form per-object string payload (OCAD's object string — e.g. course/control codes, database links)." },
+    "tagType": { "type": "integer", "description": "Type discriminator for `tag`." }
+  },
+  "$defs": {
+    "coord": {
+      "type": "array",
+      "description": "A vertex tuple: [x, y] or [x, y, flags]. x,y in map units (0.01 mm), y-down (visual space) regardless of source. The optional third element is a semantic-flags object; a plain vertex is just [x, y]. Format-specific flag bytes (OCAD xFlags/yFlags, the OMap curve byte) are NOT stored — only the semantic flags below.",
+      "minItems": 2,
+      "maxItems": 3,
+      "prefixItems": [
+        { "type": "number", "description": "x, map units, y-down." },
+        { "type": "number", "description": "y, map units, y-down." },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Semantic vertex flags; omitted entirely for a plain vertex. Each field is present only when true.",
+          "properties": {
+            "control": { "const": true, "description": "A Bézier control point. Control points come in pairs (cp1 then cp2); order recovers OCAD's 0x01/0x02." },
+            "corner": { "const": true, "description": "A corner (dog-leg) point — OCAD yFlags 0x01." },
+            "dash": { "const": true, "description": "A dash point — OCAD yFlags 0x08." }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.symbol.schema.json",
+  "title": "Gitmap symbol record (one line of symbols.ndjson)",
+  "type": "object",
+  "required": ["id", "type", "layers"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^sym_", "description": "Stable id: sym_<slug(canonical code)>, with _vN suffix for duplicate codes. Code-derived, so the same symbol from OCD/OMap gets the same id." },
+    "code": { "type": "string", "description": "Canonical symbol code (canonicalSymbolCode: OCAD '101.0' collapses to '101'; '204.1.0' preserved)." },
+    "name": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["point", "line", "area", "combined", "text", "line-text", "unknown"],
+      "description": "Canonical symbol kind. An area+border idiom is 'combined'."
+    },
+    "hidden": { "const": true, "description": "Present only when hidden." },
+    "rotatable": { "const": true, "description": "Symbol rotates with its object. Present only when true." },
+    "textSymbol": { "type": "object", "additionalProperties": true },
+    "layers": {
+      "type": "array",
+      "description": "Source-independent draw layers, in paint order. Colour references are stable color_… ids. Lengths in map units; angles in degrees. Text typography is authoritative in the `text` layer's nested `text` object (there is no top-level symbol fontSize).",
+      "items": { "$ref": "#/$defs/renderLayer" }
+    }
+  },
+  "$defs": {
+    "renderLayer": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": true,
+      "description": "A tagged draw layer. `type` selects the shape; the other fields are documented below. Enum-like fields (`capStyle`, `joinStyle`) are semantic strings, colour references are `colorId`, and geometry is `coordinates` — matching the object records. The field NAMES here are frozen for v1. Canonical output has one shape per concept: OCAD's double-line / structure-fill / border-symbol and xmap's nested line symbols are all canonicalised to the types in the `type` enum, so those input dialects never appear in output. A residual cross-format difference remains only at the element-content level for some decorations (genuine source/format loss, see the README's Known gaps), so this stays permissive: opaque nested format-native structures (the `pattern` record, nested `element.symbol` trees) are allowed and keep their source-format field names (`color`, `coords`, `innerColor`, …).",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "stroke",
+            "line-elements",
+            "fill",
+            "hatch-fill",
+            "point-pattern-fill",
+            "point-fill",
+            "point-stroke",
+            "point-elements",
+            "text"
+          ]
+        },
+        "colorId": { "type": ["string", "integer"], "description": "Stable color_… id. -1 / absent means a no-ink layer." },
+
+        "width": { "type": "number", "description": "stroke / point-stroke: line width (map units)." },
+        "capStyle": { "enum": ["flat", "round", "square", "pointed"], "description": "stroke: line cap." },
+        "joinStyle": { "enum": ["bevel", "miter", "round"], "description": "stroke: line join." },
+        "startOffset": { "type": "number" },
+        "endOffset": { "type": "number" },
+        "midSymbolsPerSpot": { "type": "integer" },
+        "midSymbolDistance": { "type": "number" },
+        "dash": {
+          "type": "object",
+          "description": "stroke dash pattern.",
+          "additionalProperties": true,
+          "properties": { "dashLength": { "type": "number" }, "breakLength": { "type": "number" } }
+        },
+        "borders": {
+          "type": "array",
+          "description": "stroke casing lines (fill-between-borders).",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "colorId": { "type": ["string", "integer"], "description": "Stable color_… id (-1 = no ink)." },
+              "width": { "type": "number" },
+              "shift": { "type": "number" },
+              "dashed": { "type": "boolean" },
+              "dashLength": { "type": "number" },
+              "breakLength": { "type": "number" }
+            }
+          }
+        },
+
+        "radius": { "type": "number", "description": "point-fill / point-stroke disc radius (map units)." },
+
+        "spacing": { "type": "number", "description": "hatch-fill line spacing." },
+        "lineWidth": { "type": "number" },
+        "angle": { "type": "number", "description": "hatch / structure / point-pattern rotation, degrees." },
+        "rotatable": { "type": "boolean", "description": "pattern/hatch rotates with the object." },
+        "height": { "type": "number", "description": "point-pattern-fill tile height (with width)." },
+        "pattern": { "type": "object", "additionalProperties": true, "description": "point-pattern-fill: xmap-native pattern record (angle, lineSpacing, pointDistance, symbol tree, …). Opaque." },
+        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" }, "description": "point-elements: OCAD icon primitives." },
+        "primSymElements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "cornerSymElements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "startSymElements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "endSymElements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+
+        "text": {
+          "type": "object",
+          "description": "text layer: authoritative typography sub-object (font family/size live here, not on the layer or symbol).",
+          "additionalProperties": true,
+          "properties": {
+            "fontFamily": { "type": "string" },
+            "fontSize": { "type": "number" },
+            "fontWeight": { "type": "integer" },
+            "italic": { "type": "boolean" },
+            "charSpace": { "type": "number" },
+            "paraSpace": { "type": "number" }
+          }
+        }
+      }
+    },
+    "element": {
+      "type": "object",
+      "description": "An OCAD-style icon primitive (line/area/circle/dot). `colorId` is a stable id.",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "integer", "description": "OCAD element kind (an opaque source-format primitive code)." },
+        "colorId": { "type": ["string", "integer"], "description": "Stable color_… id (-1 = no ink)." },
+        "lineWidth": { "type": "number" },
+        "radius": { "type": "number", "description": "Circle/dot radius (map units), matching point-fill/point-stroke." },
+        "flags": { "type": "integer" },
+        "coordinates": {
+          "type": "array",
+          "description": "Icon-primitive geometry as coord tuples, the same shape and field name as object `coordinates`: [x, y] or [x, y, flags]. Symbol-internal (y-up). An icon area primitive isn't ring-split, so `hole` stays a valid flag here.",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "prefixItems": [
+              { "type": "number", "description": "x (map units, y-up)." },
+              { "type": "number", "description": "y (map units, y-up)." },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "control": { "const": true },
+                  "corner": { "const": true },
+                  "hole": { "const": true },
+                  "dash": { "const": true }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
