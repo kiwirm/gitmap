@@ -1,12 +1,4 @@
 {
   "format": "gitmap",
-  "version": 1,
-  "units": "map-units",
-  "precision": 3,
-  "parts": [
-    {
-      "id": "part_main",
-      "name": "Main"
-    }
-  ]
+  "version": 4
 }

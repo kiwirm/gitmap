@@ -1,1 +1,2 @@
-{"id":"color_brown_0","order":0,"name":"Brown","rgb":[148,96,40],"renderOrder":0,"opacity":1,"cmyk":[0,0.35,0.75,0.42]}
+{"id":"color_black","order":1,"name":"Black","rgb":[0,0,0],"opacity":1,"cmyk":[0,0,0,1]}
+{"id":"color_brown_100","order":6,"name":"Brown 100%","rgb":[148,96,40],"opacity":1,"cmyk":[0,0.35,0.75,0.42]}

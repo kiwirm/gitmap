@@ -2,16 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.color.schema.json",
   "title": "Gitmap color record (one line of colors.ndjson)",
+  "description": "One palette colour. colors.ndjson line order is the stacking order: the first line is the topmost colour. No stacking index is stored.",
   "type": "object",
-  "required": ["id", "name", "renderOrder"],
+  "required": ["id", "order", "name"],
   "additionalProperties": false,
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^color_",
-      "description": "Stable id: color_<slug(name)>_<order>. Symbols reference this, not a palette index."
+      "pattern": "^color_[a-z0-9]+(_[a-z0-9]+)*$",
+      "description": "Stable id: color_<slug(name)> (color_unnamed when the slug is empty). Colours sharing a slug are ranked by stacking position (topmost first) then order; all but the first take _2, _3, …. Symbols reference this, never a number."
     },
-    "order": { "type": "integer", "description": "Source palette index; disambiguator in the id." },
+    "order": { "type": "integer", "description": "Source palette number (OCAD colour number; Mapper priority), kept for round-trips. Not part of the id and not the stacking order." },
     "name": { "type": "string" },
     "rgb": {
       "type": "array",
@@ -27,10 +28,6 @@
       "maxItems": 4,
       "description": "Print/OCAD ink [c,m,y,k], each 0..1, snapped to OCAD's whole-percent (2 dp) grid."
     },
-    "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
-    "renderOrder": {
-      "type": "integer",
-      "description": "Paint priority (higher = drawn on top). Distinct from `order` (palette index): the two diverge where a source's colour-list order differs from its draw order. Colours sort by this then id."
-    }
+    "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
   }
 }

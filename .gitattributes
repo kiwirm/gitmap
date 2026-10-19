@@ -1,0 +1,3 @@
+# The example package is byte-exact canonical output (LF only); keep every
+# checkout LF regardless of core.autocrlf.
+* text=auto eol=lf

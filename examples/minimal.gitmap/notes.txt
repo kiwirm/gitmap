@@ -1,0 +1,2 @@
+Minimal example map.
+Contours from 2019 LiDAR.

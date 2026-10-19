@@ -1,0 +1,28 @@
+{
+  "declination": 23.91,
+  "geographic": {
+    "id": "Geographic coordinates",
+    "refPointDeg": {
+      "lat": -43.43347842,
+      "lon": 172.69110272
+    },
+    "spec": {
+      "language": "PROJ.4",
+      "value": "+proj=latlong +datum=WGS84"
+    }
+  },
+  "grivation": 23.7,
+  "projected": {
+    "id": "EPSG",
+    "parameter": "2193",
+    "refPoint": {
+      "x": 1575000,
+      "y": 5191000
+    },
+    "spec": {
+      "language": "PROJ.4",
+      "value": "+init=epsg:2193"
+    }
+  },
+  "scale": 15000
+}

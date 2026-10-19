@@ -6,7 +6,7 @@
   "required": ["id", "type", "layers"],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^sym_", "description": "Stable id: sym_<slug(canonical code)>, with _vN suffix for duplicate codes. Code-derived, so the same symbol from OCD/OMap gets the same id." },
+    "id": { "type": "string", "pattern": "^sym_", "description": "Stable id: sym_<slug(canonical code)> (the source id when there is no code), with a _vN suffix (_v2, _v3, …) on each later symbol sharing a canonical code. Code-derived, so the same symbol from OCD/OMap gets the same id." },
     "code": { "type": "string", "description": "Canonical symbol code (canonicalSymbolCode: OCAD '101.0' collapses to '101'; '204.1.0' preserved)." },
     "name": { "type": "string" },
     "type": {
@@ -15,11 +15,11 @@
       "description": "Canonical symbol kind. An area+border idiom is 'combined'."
     },
     "hidden": { "const": true, "description": "Present only when hidden." },
+    "protected": { "const": true, "description": "Symbol is protected from editing (OCAD status bit 0; OMap is_protected). Present only when true." },
     "rotatable": { "const": true, "description": "Symbol rotates with its object. Present only when true." },
-    "textSymbol": { "type": "object", "additionalProperties": true },
     "layers": {
       "type": "array",
-      "description": "Source-independent draw layers, in paint order. Colour references are stable color_… ids. Lengths in map units; angles in degrees. Text typography is authoritative in the `text` layer's nested `text` object (there is no top-level symbol fontSize).",
+      "description": "Source-independent draw layers, in canonical group order (fill, hatch-fill, point-pattern-fill, stroke, point-fill, point-stroke, point-elements, text, line-elements), stable within a group. Colour references are stable color_… ids. Lengths in map units; angles in degrees. Text typography is authoritative in the `text` layer's nested `text` object (there is no top-level symbol fontSize).",
       "items": { "$ref": "#/$defs/renderLayer" }
     }
   },
@@ -28,7 +28,7 @@
       "type": "object",
       "required": ["type"],
       "additionalProperties": true,
-      "description": "A tagged draw layer. `type` selects the shape; the other fields are documented below. Enum-like fields (`capStyle`, `joinStyle`) are semantic strings, colour references are `colorId`, and geometry is `coordinates` — matching the object records. The field NAMES here are frozen for v1. Canonical output has one shape per concept: OCAD's double-line / structure-fill / border-symbol and xmap's nested line symbols are all canonicalised to the types in the `type` enum, so those input dialects never appear in output. A residual cross-format difference remains only at the element-content level for some decorations (genuine source/format loss, see the README's Known gaps), so this stays permissive: opaque nested format-native structures (the `pattern` record, nested `element.symbol` trees) are allowed and keep their source-format field names (`color`, `coords`, `innerColor`, …).",
+      "description": "A tagged draw layer. `type` selects the shape; the other fields are documented below. Enum-like fields (`capStyle`, `joinStyle`) are semantic strings, colour references are `colorId`, and geometry is `coordinates` — matching the object records. The field NAMES here are fixed by the spec version. Canonical output has one shape per concept: OCAD's double-line / structure-fill / border-symbol and xmap's nested line symbols are all canonicalised to the types in the `type` enum, so those input dialects never appear in output. A residual cross-format difference remains only at the element-content level for some decorations (genuine source/format loss, see the README's Known gaps), so this stays permissive: opaque nested format-native structures (the `pattern` record, nested `element.symbol` trees) are allowed and keep their source-format field names (`color`, `coords`, `innerColor`, …).",
       "properties": {
         "type": {
           "type": "string",
@@ -131,7 +131,6 @@
                 "additionalProperties": false,
                 "properties": {
                   "control": { "const": true },
-                  "corner": { "const": true },
                   "hole": { "const": true },
                   "dash": { "const": true }
                 }

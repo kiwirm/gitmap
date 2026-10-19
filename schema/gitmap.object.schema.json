@@ -8,15 +8,15 @@
   "properties": {
     "order": {
       "type": "integer",
-      "description": "Canonical dense z-rank (index in render order), NOT the raw source object id. Objects carry no stored id; objects.ndjson sorts by (partId, symbolId, geometry) and readers restore render order from `order`."
+      "description": "Canonical 0-based z-rank (index in render order, 0 drawn first), NOT the raw source object id. Objects carry no stored id; objects.ndjson sorts by (partId, symbolId, coordinates, holes, text, rotation) and readers restore render order from `order`."
     },
     "type": {
       "type": "string",
       "enum": ["point", "line", "area", "text", "line-text", "unknown"],
       "description": "Canonical object kind."
     },
-    "partId": { "type": "string", "description": "References an inline manifest part id (default 'part_main')." },
-    "symbolId": { "type": "string", "pattern": "^sym_", "description": "References a symbols.ndjson id." },
+    "partId": { "type": "string", "description": "References a parts.ndjson id (part_main in a single-part map)." },
+    "symbolId": { "type": "string", "pattern": "^(sym_|-?[0-9]+$)", "description": "References a symbols.ndjson id. An object whose symbol is not in the map keeps the source's raw numeric symbol id as a string (e.g. \"-3\" from an xmap)." },
     "coordinates": {
       "type": "array",
       "description": "The object's coordinate list. For an area with holes this is the OUTER ring; interior rings go in `holes`.",
@@ -62,8 +62,7 @@
           "description": "Semantic vertex flags; omitted entirely for a plain vertex. Each field is present only when true.",
           "properties": {
             "control": { "const": true, "description": "A Bézier control point. Control points come in pairs (cp1 then cp2); order recovers OCAD's 0x01/0x02." },
-            "corner": { "const": true, "description": "A corner (dog-leg) point — OCAD yFlags 0x01." },
-            "dash": { "const": true, "description": "A dash point — OCAD yFlags 0x08." }
+            "dash": { "const": true, "description": "A marked vertex: OCAD corner (yFlags 0x01) or dash (yFlags 0x08) point, Mapper DashPoint. The two OCAD flags collapse to this one; an OCD writer re-derives the byte from the symbol." }
           }
         }
       ]

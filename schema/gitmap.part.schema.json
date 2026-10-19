@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.part.schema.json",
+  "title": "Gitmap part record (one line of parts.ndjson)",
+  "description": "A map part. A single-part map writes the default {\"id\":\"part_main\",\"name\":\"Main\"}; objects reference a part by partId.",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "description": "Part id referenced by object.partId." },
+    "name": { "type": "string", "description": "Display name. Always present for the default part; written whenever the source names the part." }
+  }
+}
