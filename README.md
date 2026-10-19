@@ -91,16 +91,15 @@ A writer MUST:
   `text`, then `rotation`. `parts.ndjson` and `spot-colors.ndjson` keep source
   order;
 - omit optional fields that equal their default (`rotation:0`, `text:""`,
-  `hAlign:"left"`, `vAlign:"baseline"`, an all-default `pattern`, false booleans)
-  and fields whose value is undefined;
+  `hAlign:"left"`, an all-default `pattern`, false booleans) and fields whose
+  value is undefined;
 - emit no timestamps, derived counts, bounds, or local absolute paths.
 
 String comparisons in these sort keys, and the alphabetical fallback in key
-ordering below, follow ECMAScript `String.prototype.localeCompare` with no locale
-argument, as panmap runs it (Unicode collation, root/`en` order). This is not
-code-point order: case is a late tie-break, and punctuation such as `_` sorts
-before digits and letters, so `sym_101_v2` sorts before `sym_1010`. Numbers
-compare numerically.
+ordering below, use plain code-point order (comparing UTF-16 code units, as
+ECMAScript's `<` on strings does), never a locale collation, which would depend
+on the host. So uppercase sorts before lowercase, and `sym_1010` sorts before
+`sym_101_v2` (`0` is below `_`). Numbers compare numerically.
 
 ### Key order
 
@@ -110,19 +109,17 @@ priority order; any key not listed sorts after all listed keys, alphabetically.
 Keys whose value is undefined are dropped.
 
 ```text
-format, version, units, precision, parts, id, order, code, name, type, hidden,
-visible, locked, partId, part, coordinates, holes, text, rotation, bounds, rgb,
-fontSize, textSymbol, layers, colorId, color, symbolId, width, height, radius,
-fontFamily, angle, spacing, lineWidth, opacity, elements, source, metadata
+format, version, id, order, code, name, type, hidden, visible, locked, partId,
+part, coordinates, holes, text, rotation, bounds, rgb, fontSize, textSymbol,
+layers, colorId, color, symbolId, width, height, radius, fontFamily, angle,
+spacing, lineWidth, opacity, elements, source, metadata
 ```
 
 The list spans all record types; a record uses only the keys that apply (an object
-has no `rgb`, a colour no `coordinates`). `units`, `precision` and `parts` are no
-longer manifest fields in version 4 but keep their rank, which still applies to
-any nested key of that name (for example inside `extensions.json`). `symbolId`
-ranks after `color`, so an object emits `…partId, coordinates, …, symbolId`, and
-a colour emits `id, order, name, rgb, opacity, cmyk`. Byte-identical output, the
-conformance bar, depends on this order.
+has no `rgb`, a colour no `coordinates`). `symbolId` ranks after `color`, so an
+object emits `…partId, coordinates, …, symbolId`, and a colour emits
+`id, name, rgb, opacity, cmyk`. Byte-identical output, the conformance bar,
+depends on this order.
 
 ### Cross-format rules
 
@@ -132,11 +129,11 @@ The rules that make two source formats agree:
    everything ends in visual (y-down) space. Symbol icon-primitive (`element`)
    coordinates are symbol-internal and stay y-up.
 2. Stored ordinals are canonical, not raw source ids. An object's `order` is its
-   dense z-rank. A colour's `order` is its source palette number (OCAD colour
-   number, Mapper priority), kept for round-trips; colour stacking is the line
-   order of `colors.ndjson`, not a stored field. Symbols store no `order`: it was
-   the code-sorted line position (derivable), and a stored index diverged whenever
-   the two exports carried different symbol sets.
+   dense z-rank. Colours store no number: stacking is the line order of
+   `colors.ndjson`, and a writer exporting to OCD/OMap numbers each colour by that
+   position. Symbols store no `order`: it was the code-sorted line position
+   (derivable), and a stored index diverged whenever the two exports carried
+   different symbol sets.
 3. Objects carry no stored id; their geometry is their identity. `objects.ndjson`
    sorts by `(partId, symbolId, coordinate sequence, holes, text, rotation)`, so
    the same object lands in the same place from either format. Sorting on the
@@ -173,14 +170,18 @@ The rules that make two source formats agree:
    which byte to write from the symbol, as Mapper's own OCD export does.
 8. Enumerations are words, not source byte values. `capStyle`
    (`flat`/`round`/`square`/`pointed`) and `joinStyle` (`bevel`/`miter`/`round`)
-   on strokes and `hAlign`/`vAlign` on text read as names rather than a source
+   on strokes and `hAlign` on text read as names rather than a source
    format's integer, so a diff is legible and the stored form doesn't carry OCAD's
    encoding. A colour reference is `colorId` and a coordinate list is
    `coordinates` everywhere, including inside symbol icon primitives.
 9. Single-format fields are dropped. A field that only one source format can
    carry (for example Mapper's `minimumMidSymbolCount`, hatch `lineOffset`, fill
    `minArea`, OCAD's stroke `lineStyle` byte and text framing `fr*` fields) is not
-   written, because keeping it would make the two exports of one map differ.
+   written, because keeping it would make the two exports of one map differ. The
+   same goes for whole concepts held in different places: OCAD keeps text
+   vertical alignment on the text symbol, so objects carry no `vAlign`; Mapper's
+   auxiliary and grid scale factors and map-level reference point have no OCAD
+   counterpart, so georeferencing omits them.
 
 ## Manifest: `manifest.json`
 
@@ -222,6 +223,12 @@ The map's coordinate reference system as one JSON object, pretty-printed with th
 stable key order (so its keys come out alphabetically, with any nested `id`
 first). A map with no georeferencing writes `{}`.
 
+It carries only the model both source formats share: `scale`, `grivation`,
+`declination`, `projected` and `geographic` (including their own reference
+points). Mapper's `auxiliaryScaleFactor`, `gridScaleFactor` and map-level
+`refPoint` are never written, because OCAD can't hold them and keeping them would
+make the same map convert differently from OCD and from xmap.
+
 ```json
 {
   "declination": 23.91,
@@ -255,8 +262,6 @@ first). A map with no georeferencing writes `{}`.
 
 `scale` is the map scale denominator; `grivation` and `declination` are degrees.
 For an OCAD source, `geographic` and `declination` are derived from the projection.
-`auxiliaryScaleFactor` is the one CRS field OCAD cannot represent and may be
-absent (see [Known gaps](#known-gaps)).
 
 ## Extensions: `extensions.json`
 
@@ -340,26 +345,31 @@ Schema: [`schema/gitmap.color.schema.json`](./schema/gitmap.color.schema.json).
 
 The drawing palette, one colour per line. **Line order is the stacking order:**
 the first line is the topmost colour, as in OCAD's colour table and Mapper's
-priority list (ties, which a valid source doesn't produce, break by `id`). There
-is no stored stacking index, so inserting a colour adds one line instead of
-renumbering every colour below it. A reader assigns stacking from line position.
+priority list. Every colour has a distinct stacking position; a writer MUST
+reject a map in which two colours share one. There is no stored stacking index
+and no stored colour number, so inserting a colour adds one line instead of
+renumbering every colour below it. A reader assigns stacking from line position,
+and a writer exporting to OCD/OMap uses that position as the colour's number.
 
 ```json
-{"id":"color_black","order":1,"name":"Black","rgb":[0,0,0],"opacity":1,"cmyk":[0,0,0,1]}
-{"id":"color_brown_100","order":6,"name":"Brown 100%","rgb":[148,96,40],"opacity":1,"cmyk":[0,0.35,0.75,0.42]}
+{"id":"color_black","name":"Black","rgb":[0,0,0],"opacity":1,"cmyk":[0,0,0,1]}
+{"id":"color_brown_100","name":"Brown 100%","rgb":[148,96,40],"opacity":1,"cmyk":[0,0.35,0.75,0.42]}
 ```
+
+A record is `{ id, name, rgb, cmyk?, opacity? }`:
 
 - `id` is `color_<slug(name)>` (`color_unnamed` when the slug is empty). It derives
   from the name only, so an OCAD colour renumbering or a Mapper priority shift
   doesn't change any id or cascade into every symbol's `colorId`. Names aren't
-  unique (ISOM sets repeat "Black" or "Purple" at different levels, and "Purple"
-  and "PURPLE" slug alike), so colours sharing a slug are ranked by stacking
-  position (topmost first), then by `order`; the first keeps the bare id and the
-  rest take `_2`, `_3`, and so on. Reordering only reshuffles suffixes within such
-  a same-name group. Symbols reference colours by this `id`, never a number.
-- `order` is the colour's source palette number (OCAD colour number; Mapper
-  priority), kept so an export restores the source numbering. It is not part of
-  the id and does not define stacking.
+  unique (a map can have three "Green", and "Purple" and "PURPLE" slug alike), so
+  ids are assigned in two passes over the colours in stacking order (topmost
+  first). First, the topmost colour of each slug keeps the bare id. Then each
+  remaining colour, in stacking order, takes the lowest `_N` (N ≥ 2) that no
+  other colour's id already uses. So "Green", "Green", "Green 2" (top to bottom)
+  become `color_green`, `color_green_3` and `color_green_2`: the third colour's
+  bare id is `color_green_2`, so the second "Green" skips to `_3`. Symbols
+  reference colours by this `id`, never a number.
+- `name` is the colour's name (`""` when it has none).
 - `rgb` is the screen colour as an integer `[r, g, b]` triple (0..255).
 - `cmyk` is the print/OCAD ink `[c, m, y, k]`, each 0..1, snapped to whole percent
   (2 dp). Both are stored so a gitmap-to-OCD export keeps ink density.
@@ -377,17 +387,20 @@ identically or the reference chain diverges.
 Schema: [`schema/gitmap.spot-color.schema.json`](./schema/gitmap.spot-color.schema.json).
 
 The map's print separations ("Process Black", "PMS 299 Blue", …), the named inks
-it is separated onto when printed, one `{ name, cmyk, rgb }` per line in source
-order (first seen). A separation is identified by its `name`; a repeated name is
-listed once.
+it is separated onto when printed, one `{ name, cmyk }` per line in source order
+(first seen). A separation is identified by its `name`; a repeated name is listed
+once.
 
 ```json
-{"name":"Process Black","rgb":[44,46,53],"cmyk":[0,0,0,1]}
+{"name":"Process Black","cmyk":[0,0,0,1]}
 ```
 
-`name` is required; `cmyk` (`[c, m, y, k]` in 0..1) and `rgb` (an integer
-`[r, g, b]` triple, 0..255, the same shape as a palette colour's) are written when
-the source has them.
+Both fields are required. `cmyk` is `[c, m, y, k]`, each 0..1, snapped to whole
+percent (2 dp) like a palette colour's; a writer MUST reject a separation with no
+CMYK. A separation is an ink defined by its CMYK, so no screen RGB is stored: OCAD
+derives one from the CMYK while Mapper stores its own, so RGB isn't shared. An
+OMap writer derives the separation's RGB from its CMYK (Mapper's
+`method="cmyk"`).
 
 Separations are deliberately not palette colours. No symbol draws in one, they
 have no stacking position, and the two source formats disagree about whether a
@@ -492,12 +505,14 @@ An area with holes stores its outer boundary in `coordinates` and each interior
 ring in `holes` (an array of coordinate rings); objects without holes omit `holes`.
 
 Objects may also carry `text`; `rotation` (degrees, counter-clockwise, 0.1°
-grid); `hidden: true`; `hAlign` (`center`/`right`; `left` is the omitted default)
-and `vAlign` (`top`/`middle`/`bottom`; `baseline` is the omitted default);
-`textBox` `{width, height}`; a per-object `pattern` `{rotation?, origin?}` override
+grid); `hidden: true`; `hAlign` (`center`/`right`; `left` is the omitted
+default); `textBox` `{width, height}`; a per-object `pattern` `{rotation?, origin?}` override
 (rotation in degrees, dropped when all-default); and `tag`/`tagType`, a free-form
 per-object string with a type code (OCAD's object string, for example
-course/control codes).
+course/control codes). There is no `vAlign`: OCAD keeps vertical alignment on
+the text symbol, not the object.
+
+A reader MUST reject an object without a numeric `order`.
 
 ## Known gaps
 
@@ -518,13 +533,8 @@ not dialects; a writer can't bridge them without fabricating data:
 - xmap-only companion symbols: Mapper auto-generates variants (a "minimum size"
   point form, a "flat ends" line form) that share a parent's code and that its OCD
   export omits, a real symbol-set difference.
-- `auxiliaryScaleFactor`: the one CRS field OCAD can't store, a "ground-true scale"
-  choice it never records, absent for OCAD sources. A future opt-in could set it to
-  `1 / gridScaleFactor` by the ground-true convention, a domain assumption rather
-  than recovered data.
 
-These touch only `symbols.ndjson` and that one CRS field, never object or colour
-geometry.
+These touch only `symbols.ndjson`, never object or colour geometry.
 
 ## Versioning
 

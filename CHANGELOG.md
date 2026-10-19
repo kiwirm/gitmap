@@ -7,7 +7,7 @@ canonical rule (a change that alters the bytes a conforming writer produces).
 ## Version 4 — 2026-10
 
 One concern per file, colour stacking by line order, and a strict reader.
-Reference implementation: panmap 0.7.0.
+Reference implementation: panmap 0.7.0 and later (through commit `0372fe6`).
 
 - Package: exactly nine REQUIRED files, `manifest.json`, `parts.ndjson`,
   `georeferencing.json`, `extensions.json`, `notes.txt`, `colors.ndjson`,
@@ -20,40 +20,57 @@ Reference implementation: panmap 0.7.0.
 - Parts move from the manifest to `parts.ndjson`, one `{id, name}` per line; a
   single-part map writes `{"id":"part_main","name":"Main"}`.
 - Georeferencing moves from the manifest to `georeferencing.json` (pretty JSON,
-  stable key order), `{}` when the map has none.
+  stable key order), `{}` when the map has none. It carries only the model both
+  formats share (`scale`, `grivation`, `declination`, `projected`,
+  `geographic`); Mapper-only `auxiliaryScaleFactor`, `gridScaleFactor` and the
+  map-level `refPoint` are no longer written, so the "1 / gridScaleFactor"
+  known-gap note is gone.
 - Extensions move from the manifest to `extensions.json`, `{}` when none. The
   native-format notes fence (`--- gitmap-extensions v1 ---`) is unchanged.
 - Notes move from the manifest to `notes.txt`: plain UTF-8 text with LF line
   endings, trailing whitespace trimmed per line and at the end, followed by
   exactly one `\n`; an empty file when there are no notes. A non-empty
   `notes.txt` without a final newline is invalid.
-- Colours: `renderOrder` is removed. Line order is the stacking order, the first
+- Colours: `renderOrder` and `order` are removed; a record is
+  `{id, name, rgb, cmyk?, opacity?}`. Line order is the stacking order, the first
   line being the topmost colour (OCAD colour table / Mapper priority order), so
   inserting a colour adds one line instead of renumbering every colour below it.
+  An OCD/OMap writer numbers a colour by its stacking position (line index).
+  Stacking positions must be unique; a writer rejects a map where two colours
+  share one.
   This corrects the version 1 text, which described `renderOrder` as "higher = on
   top"; the sort was always the reverse (ascending, topmost first).
-- Colour ids: documented as `color_<slug(name)>` (not
-  `color_<slug(name)>_<order>`), with same-slug colours suffixed `_2`, `_3`, … in
-  stacking order then `order`. `slug` normalises accents (NFKD, combining marks
-  removed). `order` is the source palette number. (This id scheme shipped in
-  panmap 0.6.0 under version 3; see below.)
+- Colour ids: `color_<slug(name)>` (not `color_<slug(name)>_<order>`). In stacking
+  order, the topmost colour of each slug keeps the bare id and every other colour
+  takes the lowest `_N` (N ≥ 2) not used by any other colour id, so "Green",
+  "Green", "Green 2" become `color_green`, `color_green_3`, `color_green_2`
+  instead of colliding. `slug` normalises accents (NFKD, combining marks removed).
+  (Name-based ids first shipped in panmap 0.6.0 under version 3, with plain
+  `_2`, `_3` suffixes; see below.)
 - Spot colours move from the manifest's `spotColors` to `spot-colors.ndjson`,
-  `{name, cmyk, rgb}` one per line, `rgb` now an `[r, g, b]` integer array like
-  a palette colour's (version 3 wrote the CSS string `"rgb(r, g, b)"`). They are
-  not palette colours: no symbol draws
-  in one, they have no stacking position, and OCAD and Mapper disagree on whether a
-  separation also appears in the palette.
+  `{name, cmyk}` one per line, with `cmyk` required and snapped to 2 dp. No RGB is
+  stored (version 3 wrote a CSS `"rgb(r, g, b)"` string): OCAD derives it from
+  CMYK while Mapper stores its own, and an OMap writer derives it from CMYK. They
+  are not palette colours: no symbol draws in one, they have no stacking position,
+  and OCAD and Mapper disagree on whether a separation also appears in the palette.
+- Objects: no `vAlign` (OCAD keeps vertical alignment on the text symbol);
+  `hAlign` stays. A reader rejects an object without a numeric `order`.
+- Sorting: every sort and the key-order alphabetical tiebreak use code-point
+  string order, not a locale collation.
+- Key order: `units`, `precision`, `parts` and the duplicate `symbolId` rank are
+  removed from the priority list.
 - NDJSON is canonical: one record per line, every line ends in `\n`, no blank
   lines, and zero records is an empty file (previously a lone newline). Readers
   reject blank lines and a missing final newline.
 - No fallbacks: a reader accepts exactly version 4. Older packages are
-  re-converted from their source, never read through a compatibility path.
+  re-converted from their source, never read through a compatibility path. The
+  reader no longer accepts the pre-version-2 `corner` vertex flag.
 - Specification catch-up (behaviour panmap already had, now written down): the
   vertex flag `corner` is gone, with OCAD corner and dash points both written as
   `dash`; symbols carry `protected`; layers are in a fixed canonical group order;
   the additional OCAD-grid snaps (stroke width and offsets, point radii, font
-  size, point-element coordinates); the dropped single-format fields; string sorts
-  use `localeCompare` collation; key order applies at every depth; the
+  size, point-element coordinates); the dropped single-format fields; key order
+  applies at every depth; the
   extensions fence body is sorted in code-unit order. New schemas for parts, spot
   colours and georeferencing.
 

@@ -2,37 +2,67 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.georeferencing.schema.json",
   "title": "Gitmap georeferencing (georeferencing.json)",
-  "description": "The map's coordinate reference system, or {} when the map has none. Values are at OOMapper's serialisation precision so OCD- and OMap-sourced maps agree.",
+  "description": "The map coordinate reference system, or {} when the map has none. Only the model both OCAD and Mapper share: scale, grivation, declination, projected, geographic. Mapper-only auxiliaryScaleFactor, gridScaleFactor and the map-level refPoint are never written.",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
-    "scale": { "type": "number", "description": "Map scale denominator (1:scale)." },
-    "grivation": { "type": "number", "description": "Grid to magnetic rotation, degrees." },
-    "declination": { "type": "number", "description": "Magnetic declination, degrees = grivation + meridian convergence. Derived for OCAD sources." },
-    "auxiliaryScaleFactor": { "type": "number", "description": "Ground-true scaling multiplier. Not recoverable from OCAD; may be absent." },
-    "gridScaleFactor": { "type": "number" },
-    "refPoint": { "$ref": "#/$defs/point" },
+    "scale": {
+      "type": "number",
+      "description": "Map scale denominator (1:scale)."
+    },
+    "grivation": {
+      "type": "number",
+      "description": "Grid to magnetic rotation, degrees."
+    },
+    "declination": {
+      "type": "number",
+      "description": "Magnetic declination, degrees = grivation + meridian convergence. Derived for OCAD sources."
+    },
     "projected": {
       "type": "object",
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "additionalProperties": true,
       "properties": {
-        "id": { "type": "string" },
-        "parameter": { "type": "string", "description": "Projection parameter, e.g. the EPSG code." },
-        "refPoint": { "$ref": "#/$defs/point" },
-        "spec": { "$ref": "#/$defs/crsSpec" }
+        "id": {
+          "type": "string"
+        },
+        "parameter": {
+          "type": "string",
+          "description": "Projection parameter, e.g. the EPSG code."
+        },
+        "refPoint": {
+          "$ref": "#/$defs/point"
+        },
+        "spec": {
+          "$ref": "#/$defs/crsSpec"
+        }
       }
     },
     "geographic": {
       "type": "object",
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "additionalProperties": true,
       "properties": {
-        "id": { "type": "string" },
-        "spec": { "$ref": "#/$defs/crsSpec" },
+        "id": {
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/crsSpec"
+        },
         "refPointDeg": {
           "type": "object",
-          "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } }
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lon": {
+              "type": "number"
+            }
+          }
         }
       }
     }
@@ -41,13 +71,27 @@
     "crsSpec": {
       "type": "object",
       "properties": {
-        "language": { "type": "string", "examples": ["PROJ.4"] },
-        "value": { "type": "string" }
+        "language": {
+          "type": "string",
+          "examples": [
+            "PROJ.4"
+          ]
+        },
+        "value": {
+          "type": "string"
+        }
       }
     },
     "point": {
       "type": "object",
-      "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
     }
   }
 }

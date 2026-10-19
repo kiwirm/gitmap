@@ -2,25 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.spot-color.schema.json",
   "title": "Gitmap spot colour record (one line of spot-colors.ndjson)",
-  "description": "A print separation (named ink). Not a palette colour: no symbol draws in one, it has no stacking position, and OCAD and Mapper disagree on whether a separation also appears in the palette.",
+  "description": "A print separation (named ink): {name, cmyk}. Not a palette colour: no symbol draws in one, it has no stacking position, and OCAD and Mapper disagree on whether a separation also appears in the palette.",
   "type": "object",
-  "required": ["name"],
+  "required": [
+    "name",
+    "cmyk"
+  ],
   "additionalProperties": false,
   "properties": {
-    "name": { "type": "string", "description": "Separation name; its identity. Unique within the file." },
+    "name": {
+      "type": "string",
+      "description": "Separation name; its identity. Unique within the file."
+    },
     "cmyk": {
       "type": "array",
-      "items": { "type": "number", "minimum": 0, "maximum": 1 },
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
       "minItems": 4,
       "maxItems": 4,
-      "description": "Ink [c, m, y, k], each 0..1."
-    },
-    "rgb": {
-      "type": "array",
-      "items": { "type": "integer", "minimum": 0, "maximum": 255 },
-      "minItems": 3,
-      "maxItems": 3,
-      "description": "Screen colour as an [r, g, b] integer triple (0..255), the same shape as a palette colour's rgb."
+      "description": "Ink [c, m, y, k], each 0..1, snapped to whole percent (2 dp). Required: a separation is defined by its CMYK; no RGB is stored (an OMap writer derives it from CMYK)."
     }
   }
 }

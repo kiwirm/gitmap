@@ -2,32 +2,49 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kiwirm.github.io/gitmap/schema/gitmap.color.schema.json",
   "title": "Gitmap color record (one line of colors.ndjson)",
-  "description": "One palette colour. colors.ndjson line order is the stacking order: the first line is the topmost colour. No stacking index is stored.",
+  "description": "One palette colour: {id, name, rgb, cmyk?, opacity?}. colors.ndjson line order is the stacking order (first line = topmost); no stacking index or colour number is stored, and an OCD/OMap writer numbers colours by line position.",
   "type": "object",
-  "required": ["id", "order", "name"],
+  "required": [
+    "id",
+    "name",
+    "rgb"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^color_[a-z0-9]+(_[a-z0-9]+)*$",
-      "description": "Stable id: color_<slug(name)> (color_unnamed when the slug is empty). Colours sharing a slug are ranked by stacking position (topmost first) then order; all but the first take _2, _3, …. Symbols reference this, never a number."
+      "description": "Stable id: color_<slug(name)> (color_unnamed when the slug is empty). In stacking order, the topmost colour of each slug keeps the bare id; each other colour takes the lowest _N (N >= 2) not used by any other colour id. Symbols reference this, never a number."
     },
-    "order": { "type": "integer", "description": "Source palette number (OCAD colour number; Mapper priority), kept for round-trips. Not part of the id and not the stacking order." },
-    "name": { "type": "string" },
+    "name": {
+      "type": "string"
+    },
     "rgb": {
       "type": "array",
-      "items": { "type": "integer", "minimum": 0, "maximum": 255 },
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
       "minItems": 3,
       "maxItems": 3,
       "description": "Screen colour as an [r, g, b] integer triple (0..255), matching cmyk's array shape."
     },
     "cmyk": {
       "type": "array",
-      "items": { "type": "number", "minimum": 0, "maximum": 1 },
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
       "minItems": 4,
       "maxItems": 4,
       "description": "Print/OCAD ink [c,m,y,k], each 0..1, snapped to OCAD's whole-percent (2 dp) grid."
     },
-    "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+    "opacity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
   }
 }
